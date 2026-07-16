@@ -11,8 +11,11 @@ WORKDIR /app
 # Copy requirements
 COPY requirements.txt .
 
-# Install python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install python dependencies, then force-uninstall regular opencv-python 
+# and clean-install opencv-python-headless to prevent import conflicts
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip uninstall -y opencv-python opencv-python-headless && \
+    pip install --no-cache-dir opencv-python-headless
 
 # Copy the rest of the application code
 COPY . .
