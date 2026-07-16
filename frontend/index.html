@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IntelliTraffic // AI Traffic Monitoring Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/frontend/style.css">
+</head>
+<body>
+    <!-- Background Ambient Glow Points -->
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <div class="dashboard-wrapper">
+        <!-- Header -->
+        <header class="main-header glass-card">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-traffic-light"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>IntelliTraffic</h1>
+                    <span>AI Traffic Intelligence & Anomaly Engine</span>
+                </div>
+            </div>
+            <div class="status-panel">
+                <div class="status-indicator">
+                    <span class="pulse-dot" id="status-dot"></span>
+                    <span id="status-text">Connecting...</span>
+                </div>
+                <div class="hardware-badge">
+                    <i class="fa-solid fa-microchip"></i> CPU Core
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Layout -->
+        <main class="dashboard-grid">
+            <!-- Left Side: Live Feed & Config -->
+            <section class="grid-left">
+                <!-- Video Stream Card -->
+                <div class="glass-card stream-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-video"></i> Real-Time Processing Feed</h2>
+                        <div class="stream-badge"><i class="fa-solid fa-circle"></i> Live</div>
+                    </div>
+                    <div class="video-container" style="position: relative; overflow: hidden; border-radius: 8px;">
+                        <!-- We stream MJPEG from FastAPI route -->
+                        <img id="video-feed" src="/api/stream" alt="Live Traffic Feed" onerror="handleStreamError(this);" style="display: block; width: 100%; height: auto; user-select: none; -webkit-user-drag: none;">
+                        <canvas id="config-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; cursor: crosshair;"></canvas>
+                    </div>
+                    <div class="stream-instruction" style="padding: 12px 20px; font-size: 0.85rem; color: #94a3b8; display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.02); border-top: 1px solid rgba(255, 255, 255, 0.05);">
+                        <i class="fa-solid fa-circle-info" style="color: #00f2fe;"></i>
+                        <span>Drag the <b>pink line</b> to adjust counting boundary, or drag the <b>green points</b> to shape the road ROI. Changes apply in real-time.</span>
+                    </div>
+                </div>
+
+                <!-- System Config Form -->
+                <div class="glass-card config-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-sliders"></i> System Configurations</h2>
+                    </div>
+                    <form id="config-form" class="config-grid">
+                        <div class="input-row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+                            <div class="input-group" style="flex: 1;">
+                                <label for="video-source"><i class="fa-solid fa-link"></i> Video Source URI</label>
+                                <input type="text" id="video-source" placeholder="Empty for default demo, or local path / RTSP" value="">
+                            </div>
+                            <div class="input-group" style="width: 210px;">
+                                <label for="weather-mode"><i class="fa-solid fa-cloud-sun"></i> Weather Calibration</label>
+                                <select id="weather-mode" style="background: rgba(30, 35, 45, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); color: #f8fafc; padding: 10px; border-radius: 8px; font-family: 'Outfit'; font-size: 0.9rem; width: 100%; cursor: pointer;">
+                                    <option value="sunny">Sunny (Default)</option>
+                                    <option value="rainy">Rainy (Wet Denoise)</option>
+                                    <option value="foggy">Foggy (Mist Enhance)</option>
+                                    <option value="night">Night (Low-Light CLAHE)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-row" style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="enable-heatmap" style="width: 18px; height: 18px; cursor: pointer; accent-color: #00f2fe;">
+                            <label for="enable-heatmap" style="font-size: 0.9rem; color: #cbd5e1; cursor: pointer; user-select: none;">
+                                <i class="fa-solid fa-fire" style="color: #ff3366; margin-right: 5px;"></i> Enable Live Speed Congestion Heatmap
+                            </label>
+                        </div>
+                        <div class="config-actions">
+                            <button type="button" id="reset-counts-btn" class="btn btn-secondary">
+                                <i class="fa-solid fa-rotate-left"></i> Reset Stats
+                            </button>
+                            <button type="submit" id="apply-config-btn" class="btn btn-primary">
+                                <i class="fa-solid fa-check"></i> Apply Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Right Side: Analytics & Alerts -->
+            <section class="grid-right">
+                <!-- KPI metrics cards -->
+                <div class="kpi-deck">
+                    <div class="kpi-card glass-card">
+                        <div class="kpi-icon color-blue">
+                            <i class="fa-solid fa-car-side"></i>
+                        </div>
+                        <div class="kpi-info">
+                            <h3>Total Passed</h3>
+                            <p id="kpi-total">0</p>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-card">
+                        <div class="kpi-icon color-density" id="density-icon-container">
+                            <i class="fa-solid fa-users-rays"></i>
+                        </div>
+                        <div class="kpi-info">
+                            <h3>Traffic Density</h3>
+                            <p id="kpi-density" class="density-low">LOW</p>
+                        </div>
+                    </div>
+                    <div class="kpi-card glass-card">
+                        <div class="kpi-icon color-red">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div class="kpi-info">
+                            <h3>Active Alerts</h3>
+                            <p id="kpi-alerts-count">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Charts -->
+                <div class="glass-card charts-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-chart-line"></i> Real-time Traffic Analytics</h2>
+                    </div>
+                    <div class="charts-container">
+                        <div class="chart-wrapper line-chart">
+                            <canvas id="flowChart"></canvas>
+                        </div>
+                        <div class="chart-wrapper doughnut-chart">
+                            <canvas id="classChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alert Feed -->
+                <div class="glass-card alerts-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-bell"></i> Live Anomaly Alerts</h2>
+                        <span class="active-badge" id="active-alerts-badge">0 Active</span>
+                    </div>
+                    <div class="alert-list-container">
+                        <ul id="alert-list" class="alert-list">
+                            <li class="empty-alerts">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                <p>No anomalies detected. Traffic flow is normal.</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 IntelliTraffic Inc. All rights reserved. Platform status: Operational.</p>
+        </footer>
+    </div>
+
+    <!-- Application Script -->
+    <script src="/frontend/app.js"></script>
+</body>
+</html>
