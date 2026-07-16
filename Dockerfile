@@ -1,17 +1,9 @@
 # Use an official Python runtime as a parent image
-FROM python:3.10-slim
+FROM python:3.10
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-
-# Install system dependencies required for OpenCV and YOLOv8
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
